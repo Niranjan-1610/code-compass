@@ -41,10 +41,19 @@ async function fetchGitHubData(repoUrl: string): Promise<GitHubRepoData> {
     throw new Error("Invalid GitHub URL. Please use format: https://github.com/username/repository");
   }
 
+  // Use GitHub token if available for higher rate limits (5000/hour vs 60/hour)
+  const githubToken = Deno.env.get("GITHUB_TOKEN");
   const headers: Record<string, string> = {
     "Accept": "application/vnd.github.v3+json",
     "User-Agent": "GitGrade-Analyzer",
   };
+  
+  if (githubToken) {
+    headers["Authorization"] = `Bearer ${githubToken}`;
+    console.log("Using GitHub token for authenticated requests");
+  } else {
+    console.log("No GitHub token found, using unauthenticated requests (60 req/hour limit)");
+  }
 
   // Fetch basic repo info
   const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
