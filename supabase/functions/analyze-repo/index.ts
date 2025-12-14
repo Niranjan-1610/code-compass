@@ -49,7 +49,17 @@ async function fetchGitHubData(repoUrl: string): Promise<GitHubRepoData> {
   // Fetch basic repo info
   const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
   if (!repoRes.ok) {
-    throw new Error(`Repository not found or not accessible: ${repoRes.status}`);
+    if (repoRes.status === 403) {
+      const rateLimitRemaining = repoRes.headers.get("X-RateLimit-Remaining");
+      if (rateLimitRemaining === "0") {
+        throw new Error("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+      }
+      throw new Error("Access denied by GitHub. The repository may be private or inaccessible.");
+    }
+    if (repoRes.status === 404) {
+      throw new Error("Repository not found. Please check the URL and ensure it's a public repository.");
+    }
+    throw new Error(`GitHub API error: ${repoRes.status}`);
   }
   const repoData = await repoRes.json();
 
