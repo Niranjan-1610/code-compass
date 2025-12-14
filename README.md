@@ -1,6 +1,6 @@
 # GitGrade - AI-Powered GitHub Repository Analyzer
 
-**URL** = https://lovable.dev/projects/c7fd480c-035a-4a47-a73b-565b66c1ecc6
+**URL** = https://id-preview--c7fd480c-035a-4a47-a73b-565b66c1ecc6.lovable.app/
 
 GitGrade is an intelligent tool that evaluates GitHub repositories to provide a comprehensive Score, Summary, and Personalized Roadmap for developers. It helps students and developers understand how their code is perceived by recruiters and mentors.
 
