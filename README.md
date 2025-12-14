@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# GitGrade - AI-Powered GitHub Repository Analyzer
 
-## Project info
+GitGrade is an intelligent tool that evaluates GitHub repositories to provide a comprehensive Score, Summary, and Personalized Roadmap for developers. It helps students and developers understand how their code is perceived by recruiters and mentors.
 
-**URL**: https://lovable.dev/projects/c7fd480c-035a-4a47-a73b-565b66c1ecc6
+## Features
 
-## How can I edit this code?
+- **Smart Scoring**: Get a 0-100 score based on code quality, structure, and best practices.
+- **Deep Analysis**: Radar charts for multi-dimensional analysis and professionalism checklists.
+- **Detailed Stats**: View stars, forks, issues, and watchers at a glance.
+- **Actionable Roadmap**: Step-by-step guide with *file-specific* improvement tips and code solutions.
+- **Premium UI**: Glassmorphism design with smooth animations and responsive layout.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Framework**: React + Vite
+- **Styling**: Tailwind CSS
+- **AI**: Google Gemini (via Lovable AI Gateway)
+- **Icons**: Lucide React
+- **Backend**: Supabase Edge Functions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c7fd480c-035a-4a47-a73b-565b66c1ecc6) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ installed.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+   ```bash
+   git clone <YOUR_GIT_URL>
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd <YOUR_PROJECT_NAME>
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Follow these steps:
+### Running the App
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Start the development server:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Usage
 
-**Use GitHub Codespaces**
+1. Paste a public GitHub repository URL (e.g., `https://github.com/facebook/react`).
+2. Click **Analyze Now**.
+3. View your Score, Medal (Gold/Silver/Bronze), Summary, and Roadmap.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
+## Deployment
 
 Simply open [Lovable](https://lovable.dev/projects/c7fd480c-035a-4a47-a73b-565b66c1ecc6) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT
