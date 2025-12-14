@@ -26,9 +26,20 @@ interface GitHubRepoData {
 }
 
 async function fetchGitHubData(repoUrl: string): Promise<GitHubRepoData> {
-  const urlParts = repoUrl.replace("https://github.com/", "").replace(/\/$/, "").split("/");
+  // Clean the URL - remove .git suffix, trailing slashes, and extract owner/repo
+  const cleanUrl = repoUrl
+    .replace(/\.git$/, "")
+    .replace(/\/$/, "")
+    .replace("https://github.com/", "")
+    .replace("http://github.com/", "");
+  
+  const urlParts = cleanUrl.split("/").filter(Boolean);
   const owner = urlParts[0];
   const repo = urlParts[1];
+  
+  if (!owner || !repo) {
+    throw new Error("Invalid GitHub URL. Please use format: https://github.com/username/repository");
+  }
 
   const headers: Record<string, string> = {
     "Accept": "application/vnd.github.v3+json",
