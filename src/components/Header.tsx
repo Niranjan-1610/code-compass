@@ -1,9 +1,19 @@
-import { Github, Sparkles, Moon, Sun } from "lucide-react";
+import { Github, Sparkles, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
-const Header = () => {
+interface HeaderProps {
+  session?: Session | null;
+}
+
+const Header = ({ session }: HeaderProps) => {
   const { theme, setTheme } = useTheme();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl transition-colors duration-300">
@@ -33,6 +43,18 @@ const Header = () => {
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
+
+          {session && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          )}
         </div>
       </div>
     </header>

@@ -14,7 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_rate_limits: {
+        Row: {
+          last_request: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          last_request?: string
+          request_count?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          last_request?: string
+          request_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
