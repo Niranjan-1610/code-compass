@@ -1,18 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
+import { Session } from "@supabase/supabase-js";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RepoInput from "@/components/RepoInput";
 import LoadingState from "@/components/LoadingState";
 import AnalysisResults, { AnalysisData } from "@/components/AnalysisResults";
+import AuthPage from "@/components/AuthPage";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [analyzedUrl, setAnalyzedUrl] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set up auth state listener BEFORE checking session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleAnalyze = async (url: string) => {
     setIsLoading(true);
@@ -50,6 +69,18 @@ const Index = () => {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthPage />;
+  }
+
   return (
     <>
       <Helmet>
@@ -61,7 +92,7 @@ const Index = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+        <Header session={session} />
         <main>
           <Hero />
           <RepoInput onAnalyze={handleAnalyze} isLoading={isLoading} />
