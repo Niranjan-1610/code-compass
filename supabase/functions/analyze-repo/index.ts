@@ -147,28 +147,69 @@ async function fetchGitHubData(repoUrl: string): Promise<GitHubRepoData> {
   };
 }
 
+// Safe user-facing error messages
+const ERROR_MESSAGES = {
+  INVALID_URL: "Invalid repository URL. Use format: https://github.com/username/repository",
+  ANALYSIS_FAILED: "Unable to analyze repository at this time. Please try again.",
+  SERVICE_UNAVAILABLE: "Service temporarily unavailable. Please try again later.",
+  RATE_LIMITED: "Too many requests. Please try again in a moment.",
+  NOT_FOUND: "Repository not found. Please check the URL and ensure it is a public repository.",
+  ACCESS_DENIED: "Access denied. The repository may be private or inaccessible.",
+};
+
+// Strict GitHub URL validation
+const GITHUB_URL_REGEX = /^https:\/\/github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+(\/|\.git)?$/;
+
+function validateGitHubUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.length > 500) {
+    throw new Error("INVALID_URL");
+  }
+  if (!GITHUB_URL_REGEX.test(trimmed)) {
+    throw new Error("INVALID_URL");
+  }
+  return trimmed;
+}
+
+function getSafeErrorMessage(error: unknown): { message: string; status: number } {
+  if (!(error instanceof Error)) {
+    return { message: ERROR_MESSAGES.ANALYSIS_FAILED, status: 500 };
+  }
+  const msg = error.message;
+  if (msg === "INVALID_URL") return { message: ERROR_MESSAGES.INVALID_URL, status: 400 };
+  if (msg.includes("not found") || msg.includes("404")) return { message: ERROR_MESSAGES.NOT_FOUND, status: 404 };
+  if (msg.includes("private") || msg.includes("Access denied")) return { message: ERROR_MESSAGES.ACCESS_DENIED, status: 403 };
+  if (msg.includes("rate limit") || msg.includes("Rate limit")) return { message: ERROR_MESSAGES.RATE_LIMITED, status: 429 };
+  return { message: ERROR_MESSAGES.ANALYSIS_FAILED, status: 500 };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { repoUrl } = await req.json();
+    const body = await req.json();
+    const rawUrl = body?.repoUrl;
 
-    if (!repoUrl || !repoUrl.includes("github.com")) {
+    let validatedUrl: string;
+    try {
+      validatedUrl = validateGitHubUrl(rawUrl ?? "");
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Please provide a valid GitHub repository URL" }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_URL }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Fetching GitHub data for:", repoUrl);
-    const repoData = await fetchGitHubData(repoUrl);
+    console.log("Fetching GitHub data for validated URL");
+    const repoData = await fetchGitHubData(validatedUrl);
     console.log("Repository data fetched:", repoData.name);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required API configuration");
+      throw new Error("SERVICE_UNAVAILABLE");
     }
 
     const prompt = `You are an expert code reviewer and mentor. Analyze this GitHub repository data and provide a comprehensive evaluation.
@@ -240,48 +281,47 @@ Be honest but constructive. Focus on actionable feedback that would help a devel
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status, errorText);
-      
+
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          JSON.stringify({ error: ERROR_MESSAGES.RATE_LIMITED }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: ERROR_MESSAGES.SERVICE_UNAVAILABLE }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      throw new Error("AI analysis failed");
+      throw new Error("ANALYSIS_FAILED");
     }
 
     const aiData = await aiResponse.json();
     let analysisContent = aiData.choices?.[0]?.message?.content || "";
-    
+
     // Clean up the response - remove markdown code blocks if present
     analysisContent = analysisContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    
+
     console.log("AI response received, parsing...");
-    
+
     let analysis;
     try {
       analysis = JSON.parse(analysisContent);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", analysisContent);
-      throw new Error("Failed to parse analysis results");
+    } catch {
+      console.error("Failed to parse AI response");
+      throw new Error("ANALYSIS_FAILED");
     }
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error analyzing repository:", error);
+    console.error("Error analyzing repository:", error instanceof Error ? error.message : "Unknown error");
+    const { message, status } = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Failed to analyze repository" 
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: message }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
