@@ -50,9 +50,6 @@ async function fetchGitHubData(repoUrl: string): Promise<GitHubRepoData> {
   
   if (githubToken) {
     headers["Authorization"] = `Bearer ${githubToken}`;
-    console.log("Using GitHub token for authenticated requests");
-  } else {
-    console.log("No GitHub token found, using unauthenticated requests (60 req/hour limit)");
   }
 
   // Fetch basic repo info
@@ -202,9 +199,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Fetching GitHub data for validated URL");
     const repoData = await fetchGitHubData(validatedUrl);
-    console.log("Repository data fetched:", repoData.name);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
