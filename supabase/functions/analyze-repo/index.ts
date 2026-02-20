@@ -1,10 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// --- CORS: restrict to Lovable domains and localhost ---
+const ALLOWED_LOCALHOST_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "http://localhost:3000",
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const isLovableDomain =
+    origin.endsWith(".lovable.app") || origin.endsWith(".lovable.dev");
+  const isLocalDev = ALLOWED_LOCALHOST_ORIGINS.includes(origin);
+  const allowedOrigin =
+    isLovableDomain || isLocalDev ? origin : ALLOWED_LOCALHOST_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+  };
+}
+
+// --- Zod schema for AI response validation ---
+const RoadmapItemSchema = z.object({
+  title: z.string().max(200),
+  description: z.string().max(1000),
+  priority: z.enum(["high", "medium", "low"]),
+});
+
+const AnalysisSchema = z.object({
+  score: z.number().min(0).max(100),
+  level: z.string().max(50),
+  summary: z.string().max(1000),
+  strengths: z.array(z.string().max(300)).min(1).max(8),
+  weaknesses: z.array(z.string().max(300)).min(1).max(8),
+  metrics: z.object({
+    codeQuality: z.number().min(0).max(100),
+    documentation: z.number().min(0).max(100),
+    testCoverage: z.number().min(0).max(100),
+    projectStructure: z.number().min(0).max(100),
+    gitPractices: z.number().min(0).max(100),
+    realWorldRelevance: z.number().min(0).max(100),
+  }),
+  roadmap: z.array(RoadmapItemSchema).min(2).max(10),
+});
 
 interface GitHubRepoData {
   name: string;
@@ -178,6 +219,8 @@ const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -340,7 +383,6 @@ Be honest but constructive. Focus on actionable feedback that would help a devel
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status);
 
       if (aiResponse.status === 429) {
@@ -365,9 +407,11 @@ Be honest but constructive. Focus on actionable feedback that would help a devel
 
     let analysis;
     try {
-      analysis = JSON.parse(analysisContent);
+      const parsed = JSON.parse(analysisContent);
+      // Validate the AI response structure with Zod
+      analysis = AnalysisSchema.parse(parsed);
     } catch {
-      console.error("Failed to parse AI response");
+      console.error("Failed to parse or validate AI response");
       throw new Error("ANALYSIS_FAILED");
     }
 
@@ -375,6 +419,7 @@ Be honest but constructive. Focus on actionable feedback that would help a devel
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const corsHeaders = getCorsHeaders(req);
     console.error("Error analyzing repository:", error instanceof Error ? error.message : "Unknown error");
     const { message, status } = getSafeErrorMessage(error);
     return new Response(
